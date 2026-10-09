@@ -1,0 +1,15 @@
+[Unit]
+Description=Gunicorn - to-do-list ({{ inventory_hostname }})
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User={{ app_user }}
+Group={{ app_user }}
+WorkingDirectory={{ app_src }}
+ExecStart={{ app_venv }}/bin/gunicorn --workers 3 --bind {{ ansible_host }}:{{ app_port }} todo.wsgi:application
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
