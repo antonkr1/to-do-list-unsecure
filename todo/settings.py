@@ -10,7 +10,10 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.2/ref/settings/
 """
 
+import os
 from pathlib import Path
+
+from django.core.management.utils import get_random_secret_key
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -19,17 +22,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-# TODO: ne jamais commiter la cle secrete, la charger depuis une variable d'environnement
-# FIXME: cle secrete Django exposee dans le depot Git
-SECRET_KEY = 'django-insecure-=8e&h2naz6*na6mne4y8l1m@rr=(igde^7rz2cmal)r_o)raoo'
+# Secrets et options injectés par variables d'environnement (EnvironmentFile du service systemd)
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY') or get_random_secret_key()
 
-# SECURITY WARNING: don't run with debug turned on in production!
-# TODO: desactiver le mode DEBUG avant la mise en production
-DEBUG = True
+DEBUG = os.environ.get('DJANGO_DEBUG', 'False') == 'True'
 
-# TODO: restreindre les hotes autorises, '*' accepte n'importe quel hote
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
 
 # Application definition
@@ -51,8 +49,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-    # TODO: XFrameOptionsMiddleware retire => clickjacking possible (S5146)
-    # 'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
 ROOT_URLCONF = 'todo.urls'
@@ -125,11 +122,11 @@ USE_TZ = True
 
 
 
-# TODO: activer le flag Secure sur les cookies (transport HTTPS uniquement)
-SESSION_COOKIE_SECURE = False
-CSRF_COOKIE_SECURE = False
-# TODO: HttpOnly=False expose le cookie de session au JavaScript (vol de session via XSS)
-SESSION_COOKIE_HTTPONLY = False
+# Cookies 'Secure' (HTTPS) actifs par défaut ; DJANGO_SECURE_COOKIES=False tant que l'appli est servie en HTTP
+SECURE_COOKIES = os.environ.get('DJANGO_SECURE_COOKIES', 'True') == 'True'
+SESSION_COOKIE_SECURE = SECURE_COOKIES
+CSRF_COOKIE_SECURE = SECURE_COOKIES
+SESSION_COOKIE_HTTPONLY = True
 
 STATIC_URL = '/static/'
 
