@@ -1,13 +1,23 @@
 [Unit]
-Description=Gunicorn - to-do-list ({{ inventory_hostname }})
+Description=Application Django todolist (Gunicorn) - {{ inventory_hostname }}
 After=network-online.target
 Wants=network-online.target
 
 [Service]
+Type=notify
+NotifyAccess=main
 User={{ app_user }}
 Group={{ app_user }}
 WorkingDirectory={{ app_src }}
+EnvironmentFile=/etc/todolist/secrets.env
+Environment=DJANGO_DEBUG={{ django_debug }}
+Environment=DJANGO_ALLOWED_HOSTS={{ ansible_host }}
+Environment=DJANGO_SECURE_COOKIES=False
 ExecStart={{ app_venv }}/bin/gunicorn --workers 3 --bind {{ ansible_host }}:{{ app_port }} todo.wsgi:application
+ExecReload=/bin/kill -s HUP $MAINPID
+KillMode=mixed
+TimeoutStopSec=5
+PrivateTmp=true
 Restart=on-failure
 RestartSec=5
 

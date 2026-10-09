@@ -8,7 +8,7 @@
     app_dir: /opt/todo
     app_src: "{{ app_dir }}/app"
     app_venv: "{{ app_dir }}/venv"
-    app_repo: https://github.com/antonkr1/to-do-list-unsecure.git
+    app_repo: https://github.com/gaeldb/to-do-list-unsecure.git
     app_branch: main
     app_port: 8000
     service_name: todolist
@@ -43,11 +43,30 @@
         create_home: true
         shell: /usr/sbin/nologin
 
+    - name: J2-14 - Dossier des secrets de l'application
+      ansible.builtin.file:
+        path: /etc/todolist
+        state: directory
+        owner: root
+        group: "{{ app_user }}"
+        mode: "0750"
+
+    - name: J2-14 - Générer les secrets sur le serveur (une seule fois, jamais dans Git)
+      ansible.builtin.shell: |
+        umask 027
+        printf 'DJANGO_SECRET_KEY=%s\nAPP_ADMIN_PASSWORD=%s\n' \
+          "$(python3 -c 'import secrets; print(secrets.token_urlsafe(50))')" \
+          "$(python3 -c 'import secrets; print(secrets.token_urlsafe(16))')" > /etc/todolist/secrets.env
+        chown root:{{ app_user }} /etc/todolist/secrets.env
+      args:
+        creates: /etc/todolist/secrets.env
+      notify: Redémarrer todolist
+
     - name: 9 - Cloner le dépôt de l'application ({{ app_branch }})
       ansible.builtin.git:
         repo: "{{ app_repo }}"
         dest: "{{ app_src }}"
-        version: "{{ app_branch }}"
+        version: "{{ app_version | default(app_branch) }}"
         force: true
       become_user: "{{ app_user }}"
       notify: Redémarrer todolist
